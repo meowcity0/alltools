@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>proxenum — %%DOMAIN%% — %%DATE%%</title>
+<style>
+:root {
+  --bg-primary: #0d1117;
+  --bg-secondary: #161b22;
+  --bg-card: #1c2128;
+  --bg-hover: #21262d;
+  --border: #30363d;
+  --border-muted: #21262d;
+  --text-primary: #e6edf3;
+  --text-secondary: #8b949e;
+  --text-muted: #656d76;
+  --accent-sage: #7aab7a;
+  --accent-gold: #c9a96e;
+  --accent-silver: #c0c8d4;
+  --accent-purple: #8b7aa8;
+  --success: #56d364;
+  --danger: #f85149;
+  --warning: #e3b341;
+  --info: #58a6ff;
+  --font-mono: 'JetBrains Mono','Fira Code','Cascadia Code',monospace;
+  --font-sans: 'Inter','Segoe UI',system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg-primary);color:var(--text-primary);font-family:var(--font-sans);font-size:14px;line-height:1.6;min-height:100vh}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 20% 20%,rgba(122,171,122,.04) 0%,transparent 50%),radial-gradient(ellipse at 80% 80%,rgba(139,122,168,.03) 0%,transparent 50%);pointer-events:none;z-index:0}
+.layout{display:flex;min-height:100vh;position:relative;z-index:1}
+.sidebar{width:220px;background:var(--bg-secondary);border-right:1px solid var(--border);padding:0;position:sticky;top:0;height:100vh;overflow-y:auto;flex-shrink:0}
+.sidebar-header{padding:20px 16px 14px;border-bottom:1px solid var(--border)}
+.sidebar-logo{font-size:13px;font-weight:700;letter-spacing:.1em;color:var(--accent-gold);text-transform:uppercase}
+.sidebar-subtitle{font-size:11px;color:var(--text-muted);margin-top:2px}
+.sidebar-nav{padding:10px 8px}
+.nav-section{font-size:10px;font-weight:600;letter-spacing:.08em;color:var(--text-muted);text-transform:uppercase;padding:8px 8px 4px}
+.nav-item{display:block;padding:6px 8px;border-radius:6px;color:var(--text-secondary);text-decoration:none;font-size:13px;transition:all .15s;cursor:pointer;border:none;background:none;width:100%;text-align:left}
+.nav-item:hover{background:var(--bg-hover);color:var(--text-primary)}
+.nav-item.active{background:rgba(122,171,122,.12);color:var(--accent-sage)}
+.main{flex:1;overflow-y:auto}
+.topbar{background:var(--bg-secondary);border-bottom:1px solid var(--border);padding:14px 32px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
+.topbar-title{font-size:16px;font-weight:600;color:var(--text-primary)}
+.topbar-meta{font-size:12px;color:var(--text-muted)}
+.content{padding:28px 32px;max-width:1400px}
+.section{display:none}
+.section.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.section.active>*{animation:fadeIn .2s ease-out forwards}
+.section-header{margin-bottom:22px}
+.section-title{font-size:20px;font-weight:700;color:var(--text-primary);margin-bottom:3px}
+.section-desc{font-size:13px;color:var(--text-muted)}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:22px}
+.stat-card{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:16px 18px;transition:border-color .15s}
+.stat-card:hover{border-color:var(--accent-sage)}
+.stat-value{font-size:26px;font-weight:700;color:var(--accent-silver);line-height:1}
+.stat-label{font-size:11px;color:var(--text-muted);margin-top:4px}
+.stat-card.success .stat-value{color:var(--success)}
+.stat-card.warning .stat-value{color:var(--warning)}
+.stat-card.danger .stat-value{color:var(--danger)}
+.stat-card.info .stat-value{color:var(--info)}
+.card{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:18px;margin-bottom:18px}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.card-title{font-size:13px;font-weight:600;color:var(--accent-gold)}
+.table-wrapper{overflow-x:auto;border-radius:8px;border:1px solid var(--border)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead tr{background:var(--bg-secondary)}
+th{padding:9px 13px;text-align:left;font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:9px 13px;border-bottom:1px solid var(--border-muted);color:var(--text-secondary)}
+tr:last-child td{border-bottom:none}
+tbody tr:hover{background:var(--bg-hover)}
+.td-ip{font-family:var(--font-mono);color:var(--accent-silver)}
+.td-hostname{font-weight:500;color:var(--text-primary)}
+.td-domain{color:var(--accent-sage)}
+.td-os{color:var(--text-muted);font-size:12px}
+.badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:20px;font-size:11px;font-weight:500}
+.badge-success{background:rgba(86,211,100,.15);color:var(--success)}
+.badge-danger{background:rgba(248,81,73,.15);color:var(--danger)}
+.badge-warning{background:rgba(227,179,65,.15);color:var(--warning)}
+.badge-info{background:rgba(88,166,255,.15);color:var(--info)}
+.badge-muted{background:rgba(139,148,158,.1);color:var(--text-muted)}
+.badge-gold{background:rgba(201,169,110,.15);color:var(--accent-gold)}
+.port-list{display:flex;flex-wrap:wrap;gap:3px}
+.port-tag{padding:2px 7px;border-radius:4px;font-family:var(--font-mono);font-size:11px;background:rgba(88,166,255,.1);color:var(--info);border:1px solid rgba(88,166,255,.2)}
+.port-tag.high-value{background:rgba(227,179,65,.1);color:var(--warning);border-color:rgba(227,179,65,.2)}
+/* service-category port colors */
+.port-cat-web{padding:2px 7px;border-radius:4px;font-family:var(--font-mono);font-size:11px;background:rgba(88,166,255,.12);color:#58a6ff;border:1px solid rgba(88,166,255,.25)}
+.port-cat-smb{padding:2px 7px;border-radius:4px;font-family:var(--font-mono);font-size:11px;background:rgba(227,179,65,.12);color:#e3b341;border:1px solid rgba(227,179,65,.25)}
+.port-cat-remote{padding:2px 7px;border-radius:4px;font-family:var(--font-mono);font-size:11px;background:rgba(248,81,73,.12);color:#f85149;border:1px solid rgba(248,81,73,.25)}
+.port-cat-auth{padding:2px 7px;border-radius:4px;font-family:var(--font-mono);font-size:11px;background:rgba(122,171,122,.12);color:#7aab7a;border:1px solid rgba(122,171,122,.25)}
+.port-cat-db{padding:2px 7px;border-radius:4px;font-family:var(--font-mono);font-size:11px;background:rgba(139,122,168,.12);color:#8b7aa8;border:1px solid rgba(139,122,168,.25)}
+.port-cat-mail{padding:2px 7px;border-radius:4px;font-family:var(--font-mono);font-size:11px;background:rgba(201,169,110,.12);color:#c9a96e;border:1px solid rgba(201,169,110,.25)}
+.port-cat-ssh{padding:2px 7px;border-radius:4px;font-family:var(--font-mono);font-size:11px;background:rgba(86,211,100,.12);color:#56d364;border:1px solid rgba(86,211,100,.25)}
+.port-cat-ftp{padding:2px 7px;border-radius:4px;font-family:var(--font-mono);font-size:11px;background:rgba(201,169,110,.10);color:#c9a96e;border:1px solid rgba(201,169,110,.2)}
+.port-cat-dns{padding:2px 7px;border-radius:4px;font-family:var(--font-mono);font-size:11px;background:rgba(86,211,100,.10);color:#56d364;border:1px solid rgba(86,211,100,.2)}
+.matrix-table td,.matrix-table th{text-align:center;min-width:70px}
+.matrix-table th:first-child,.matrix-table td:first-child{text-align:left;min-width:160px;font-family:var(--font-mono);font-size:11px}
+.cell-success{background:rgba(86,211,100,.1);color:var(--success)}
+.cell-fail{background:rgba(248,81,73,.05);color:var(--text-muted)}
+.cell-admin{background:rgba(201,169,110,.15);color:var(--accent-gold);font-weight:600}
+.copy-btn{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-secondary);font-size:11px;cursor:pointer;transition:all .15s}
+.copy-btn:hover{border-color:var(--accent-sage);color:var(--accent-sage);background:rgba(122,171,122,.05)}
+.copy-btn.copied{border-color:var(--success);color:var(--success)}
+.code-block{background:var(--bg-primary);border:1px solid var(--border);border-radius:8px;padding:14px;font-family:var(--font-mono);font-size:12px;color:var(--text-secondary);overflow-x:auto;white-space:pre;line-height:1.7}
+.code-header{display:flex;align-items:center;justify-content:space-between;padding:7px 12px;background:var(--bg-secondary);border:1px solid var(--border);border-bottom:1px solid var(--border-muted);border-radius:8px 8px 0 0;font-size:11px;color:var(--text-muted)}
+.cmd-line{border-radius:0;border-top:none;color:var(--accent-sage)}
+.output-block{border-radius:0 0 8px 8px;border-top:none;max-height:380px;overflow-y:auto}
+.checklist{list-style:none}
+.checklist li{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--border-muted);color:var(--text-secondary);font-size:13px;cursor:pointer}
+.checklist li:last-child{border-bottom:none}
+.check-box{width:16px;height:16px;border:1.5px solid var(--border);border-radius:3px;flex-shrink:0;margin-top:2px;transition:all .15s}
+.checklist li:hover .check-box{border-color:var(--accent-sage)}
+.checklist li.done .check-box{background:var(--accent-sage);border-color:var(--accent-sage)}
+.checklist li.done .check-text{text-decoration:line-through;color:var(--text-muted)}
+.domain-banner{background:rgba(122,171,122,.07);border:1px solid rgba(122,171,122,.2);border-radius:8px;padding:11px 15px;margin-bottom:18px;font-size:13px;color:var(--accent-sage)}
+.relay-banner{background:rgba(248,81,73,.07);border:1px solid rgba(248,81,73,.25);border-radius:8px;padding:11px 15px;margin-bottom:18px;font-size:13px;color:var(--danger)}
+.empty-msg{text-align:center;color:var(--text-muted);padding:20px}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--text-muted)}
+@media(max-width:768px){.sidebar{display:none}.content{padding:16px}}
+/* ── Light mode (Frieren parchment) ──────────────────────────── */
+[data-theme="light"]{
+  --bg-primary:#f5f0e8;
+  --bg-secondary:#ede7db;
+  --bg-card:#fdf8f0;
+  --bg-hover:#e8e0d0;
+  --border:#c8bfaf;
+  --border-muted:#ddd5c5;
+  --text-primary:#2c2720;
+  --text-secondary:#5a5048;
+  --text-muted:#8a7e72;
+  --accent-sage:#3d7a3d;
+  --accent-gold:#8a6510;
+  --accent-silver:#4a5060;
+  --accent-purple:#6a5a8a;
+  --success:#2a6e3a;
+  --danger:#a02828;
+  --warning:#8a6510;
+  --info:#2050a0;
+}
+[data-theme="light"] body::before{background:radial-gradient(ellipse at 20% 20%,rgba(61,122,61,.04) 0%,transparent 50%),radial-gradient(ellipse at 80% 80%,rgba(106,90,138,.03) 0%,transparent 50%)}
+[data-theme="light"] .badge-success{background:rgba(42,110,58,.12)}
+[data-theme="light"] .badge-danger{background:rgba(160,40,40,.12)}
+[data-theme="light"] .badge-info{background:rgba(32,80,160,.12)}
+[data-theme="light"] .badge-gold{background:rgba(138,101,16,.12)}
+[data-theme="light"] .badge-muted{background:rgba(90,80,72,.1)}
+[data-theme="light"] .port-tag{background:rgba(32,80,160,.1);border-color:rgba(32,80,160,.2)}
+[data-theme="light"] .port-tag.high-value{background:rgba(138,101,16,.1);border-color:rgba(138,101,16,.2)}
+[data-theme="light"] .cell-success{background:rgba(42,110,58,.1)}
+[data-theme="light"] .cell-fail{background:rgba(160,40,40,.04)}
+[data-theme="light"] .cell-admin{background:rgba(138,101,16,.12)}
+[data-theme="light"] .domain-banner{background:rgba(61,122,61,.06);border-color:rgba(61,122,61,.2)}
+[data-theme="light"] .relay-banner{background:rgba(160,40,40,.06);border-color:rgba(160,40,40,.2)}
+[data-theme="light"] .copy-btn:hover{background:rgba(61,122,61,.06)}
+/* theme toggle button */
+.theme-btn{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:20px;border:1px solid var(--border);background:var(--bg-primary);color:var(--text-secondary);font-size:12px;cursor:pointer;transition:all .2s}
+.theme-btn:hover{border-color:var(--accent-gold);color:var(--accent-gold)}
+/* sticky table head */
+.table-wrapper{max-height:520px;overflow-y:auto}
+thead{position:sticky;top:0;z-index:2}
+/* HTTP links */
+.http-link{display:inline-flex;align-items:center;padding:5px 12px;border-radius:6px;background:rgba(88,166,255,.08);border:1px solid rgba(88,166,255,.2);color:var(--info);text-decoration:none;font-family:var(--font-mono);font-size:12px;transition:all .15s}
+.http-link:hover{background:rgba(88,166,255,.15);border-color:rgba(88,166,255,.4)}
+/* sort indicator */
+th.sortable{cursor:pointer;user-select:none}
+th.sortable:hover{color:var(--text-primary)}
+th.sort-asc::after{content:' ↑'}
+th.sort-desc::after{content:' ↓'}
+</style>
+</head>
+<body>
+<div class="layout">
+  <nav class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">proxenum</div>
+      <div class="sidebar-subtitle">OSCP Enumeration Report</div>
+    </div>
+    <div class="sidebar-nav">
+      <div class="nav-section">Overview</div>
+      <button class="nav-item active" onclick="show('summary',this)">Summary</button>
+      <button class="nav-item" onclick="show('hosts',this)">Hosts &amp; FQDN</button>
+      <button class="nav-item" onclick="show('ports',this)">Port Matrix</button>
+      <div class="nav-section" style="margin-top:10px">Credentials</div>
+      <button class="nav-item" onclick="show('credentials',this)">Spray Results</button>
+      <button class="nav-item" onclick="show('matrix',this)">Auth Matrix</button>
+      <div class="nav-section" style="margin-top:10px">Analysis</div>
+      <button class="nav-item" onclick="show('critical',this)">⚠ Critical Findings</button>
+      <button class="nav-item" onclick="show('heatmap',this)">◉ Port Heatmap</button>
+      <button class="nav-item" onclick="show('priority',this)">⚡ Next Targets</button>
+      <button class="nav-item" onclick="show('checklist',this)">OSCP Checklist</button>
+      <button class="nav-item" onclick="show('commands',this)">Command Log</button>
+      %%FOCUS_NAV_ITEMS%%
+    </div>
+  </nav>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-title">%%DOMAIN%%</div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <span class="topbar-meta">%%DATE%% &nbsp;·&nbsp; proxenum v1.2.0</span>
+        <button class="theme-btn" id="theme-btn" onclick="toggleTheme()">☀ Light</button>
+      </div>
+    </div>
+    <div class="content">
+
+      <!-- SUMMARY -->
+      <div class="section active" id="section-summary">
+        <div class="section-header">
+          <div class="section-title">Mission Summary</div>
+          <div class="section-desc">Enumeration overview — %%DOMAIN%%</div>
+        </div>
+        %%DOMAIN_BANNER%%
+        %%RELAY_BANNER%%
+        <div class="stats-grid">
+          <div class="stat-card info"><div class="stat-value">%%TOTAL_HOSTS%%</div><div class="stat-label">Hosts Discovered</div></div>
+          <div class="stat-card"><div class="stat-value">%%TOTAL_PORTS%%</div><div class="stat-label">Open Ports</div></div>
+          <div class="stat-card %%CRED_CLASS%%"><div class="stat-value">%%TOTAL_CREDS%%</div><div class="stat-label">Valid Credentials</div></div>
+          <div class="stat-card %%ADMIN_CLASS%%"><div class="stat-value">%%TOTAL_ADMIN%%</div><div class="stat-label">Admin Accesses</div></div>
+          <div class="stat-card warning"><div class="stat-value">%%RELAY_COUNT%%</div><div class="stat-label">Relay Candidates</div></div>
+          <div class="stat-card"><div class="stat-value">%%DURATION%%</div><div class="stat-label">Total Duration</div></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Host Overview</div></div>
+          <div class="table-wrapper">
+            <table>
+              <thead><tr><th class="sortable">IP</th><th class="sortable">Hostname</th><th class="sortable">FQDN</th><th class="sortable">OS</th><th class="sortable">Domain</th><th>Signing</th><th>Open Ports</th></tr></thead>
+              <tbody>%%HOST_ROWS%%</tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- HOSTS -->
+      <div class="section" id="section-hosts">
+        <div class="section-header">
+          <div class="section-title">Hosts &amp; FQDN Mapping</div>
+          <div class="section-desc">IP → hostname/FQDN resolution via SMB</div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Host Table</div>
+            <button class="copy-btn" onclick="copyMd('md-hosts')">%%COPY_ICON%% Copy Markdown</button>
+          </div>
+          <textarea id="md-hosts" style="display:none">%%MD_HOSTS%%</textarea>
+          <div class="table-wrapper">
+            <table>
+              <thead><tr><th>IP</th><th>Hostname</th><th>FQDN</th><th>OS</th><th>Domain</th><th>Signing</th><th>Relay?</th></tr></thead>
+              <tbody>%%HOST_DETAIL_ROWS%%</tbody>
+            </table>
+          </div>
+        </div>
+        %%HOSTS_BLOCK_HTML%%
+      </div>
+
+      <!-- PORTS -->
+      <div class="section" id="section-ports">
+        <div class="section-header">
+          <div class="section-title">Port Matrix</div>
+          <div class="section-desc">Open ports per host — <span style="color:var(--warning)">highlighted</span> = high-value, copy port list below</div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Nmap Results (service detail)</div>
+            <button class="copy-btn" onclick="copyMd('md-ports')">%%COPY_ICON%% Copy Markdown</button>
+          </div>
+          <textarea id="md-ports" style="display:none">%%MD_PORTS%%</textarea>
+          <div class="table-wrapper">
+            <table>
+              <thead><tr><th>Host</th><th>IP</th><th>Open Ports</th></tr></thead>
+              <tbody>%%PORT_ROWS%%</tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Quick HTTP Links</div></div>
+          <div style="padding:10px 4px;display:flex;flex-wrap:wrap;gap:8px">%%HTTP_LINKS%%</div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">TCP Port Summary</div>
+            <button class="copy-btn" onclick="copyMd('md-port-summary')">%%COPY_ICON%% Copy Markdown</button>
+          </div>
+          <textarea id="md-port-summary" style="display:none">%%MD_PORT_SUMMARY%%</textarea>
+          <div class="table-wrapper">
+            <table>
+              <thead><tr><th class="sortable">Host</th><th class="sortable">IP</th><th>Open TCP Ports</th></tr></thead>
+              <tbody>%%PORT_SUMMARY_ROWS%%</tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- CREDENTIALS -->
+      <div class="section" id="section-credentials">
+        <div class="section-header">
+          <div class="section-title">Spray Results</div>
+          <div class="section-desc">Successful logins from password spray</div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Successful Logins</div>
+            <button class="copy-btn" onclick="copyMd('md-creds')">%%COPY_ICON%% Copy Markdown</button>
+          </div>
+          <textarea id="md-creds" style="display:none">%%MD_CREDS%%</textarea>
+          <div class="table-wrapper">
+            <table>
+              <thead><tr><th>Protocol</th><th>Host</th><th>IP</th><th>Username</th><th>Password</th><th>Admin?</th></tr></thead>
+              <tbody>%%CRED_ROWS%%</tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- MATRIX -->
+      <div class="section" id="section-matrix">
+        <div class="section-header">
+          <div class="section-title">Auth Matrix</div>
+          <div class="section-desc">Credential × host success/fail overview</div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Credential × Host</div>
+            <button class="copy-btn" onclick="copyMd('md-matrix')">%%COPY_ICON%% Copy Markdown</button>
+          </div>
+          <textarea id="md-matrix" style="display:none">%%MD_MATRIX%%</textarea>
+          <div class="table-wrapper">%%MATRIX_HTML%%</div>
+        </div>
+      </div>
+
+      <!-- CRITICAL FINDINGS -->
+      <div class="section" id="section-critical">
+        <div class="section-header">
+          <div class="section-title">⚠ Critical Findings</div>
+          <div class="section-desc">Actionable attack surface — accessible shares, vulns, exposed users</div>
+        </div>
+        %%CRITICAL_HTML%%
+      </div>
+
+      <!-- HEATMAP -->
+      <div class="section" id="section-heatmap">
+        <div class="section-header">
+          <div class="section-title">◉ Port Heatmap</div>
+          <div class="section-desc">IP × port open/closed matrix</div>
+        </div>
+        %%HEATMAP_HTML%%
+      </div>
+
+      <!-- CHECKLIST -->
+      <div class="section" id="section-checklist">
+        <div class="section-header">
+          <div class="section-title">OSCP チェックリスト</div>
+          <div class="section-desc">チェックボックスで進捗管理 · 項目を開くと具体コマンド</div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Checklist</div>
+            <button class="copy-btn" onclick="copyMd('md-checklist')">%%COPY_ICON%% Copy Markdown</button>
+          </div>
+          <textarea id="md-checklist" style="display:none">%%MD_CHECKLIST%%</textarea>
+          <div id="checklist" style="padding:4px 16px 14px">%%CHECKLIST_ITEMS%%</div>
+        </div>
+      </div>
+
+      <!-- PRIORITY -->
+      <div class="section" id="section-priority">
+        <div class="section-header">
+          <div class="section-title">⚡ Next Focus Targets</div>
+          <div class="section-desc">Ranked by attack surface — run <code style="font-size:11px">proxenum focus -i &lt;IP&gt;</code> on top entries</div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Priority Ranking</div>
+            <button class="copy-btn" onclick="copyMd('md-priority')">%%COPY_ICON%% Copy Markdown</button>
+          </div>
+          <textarea id="md-priority" style="display:none">%%MD_PRIORITY%%</textarea>
+          <div class="table-wrapper">
+            <table>
+              <thead><tr><th>#</th><th>IP</th><th>Host</th><th>Score</th><th>Reasons</th></tr></thead>
+              <tbody>%%PRIORITY_ROWS%%</tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- COMMANDS -->
+      <div class="section" id="section-commands">
+        <div class="section-header">
+          <div class="section-title">Command Log</div>
+          <div class="section-desc">Every command run during enumeration</div>
+        </div>
+        %%COMMAND_BLOCKS%%
+      </div>
+
+      %%FOCUS_SECTIONS%%
+
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── navigation ─────────────────────────────────────── */
+function show(name, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('section-' + name).classList.add('active');
+  btn.classList.add('active');
+}
+
+/* ── copy helpers ───────────────────────────────────── */
+function flashBtn(btn, ok) {
+  const orig = btn.innerHTML;
+  btn.classList.add('copied');
+  btn.textContent = ok ? '✓ Copied!' : '✗ Failed';
+  setTimeout(() => { btn.classList.remove('copied'); btn.innerHTML = orig; }, 2000);
+}
+function copyMd(id) {
+  const btn = event.currentTarget;
+  const el = document.getElementById(id);
+  const text = (el.value != null && el.value !== '') ? el.value : el.textContent;
+  navigator.clipboard.writeText(text)
+    .then(() => flashBtn(btn, true))
+    .catch(() => flashBtn(btn, false));
+}
+function copyText(text, btn) {
+  navigator.clipboard.writeText(text)
+    .then(() => flashBtn(btn, true))
+    .catch(() => flashBtn(btn, false));
+}
+function copyPre(id) {
+  const btn = event.currentTarget;
+  const text = document.getElementById(id).textContent;
+  navigator.clipboard.writeText(text)
+    .then(() => flashBtn(btn, true))
+    .catch(() => flashBtn(btn, false));
+}
+
+/* ── theme toggle ───────────────────────────────────── */
+function toggleTheme() {
+  const light = document.body.getAttribute('data-theme') !== 'light';
+  document.body.setAttribute('data-theme', light ? 'light' : 'dark');
+  document.getElementById('theme-btn').textContent = light ? '🌙 Dark' : '☀ Light';
+  try { localStorage.setItem('proxenum-theme', light ? 'light' : 'dark'); } catch(e){}
+}
+(function(){
+  try {
+    const t = localStorage.getItem('proxenum-theme');
+    if (t) {
+      document.body.setAttribute('data-theme', t);
+      document.getElementById('theme-btn').textContent = t === 'light' ? '🌙 Dark' : '☀ Light';
+    }
+  } catch(e){}
+})();
+
+/* ── checklist ──────────────────────────────────────── */
+document.getElementById('checklist').addEventListener('click', e => {
+  const li = e.target.closest('li');
+  if (li) li.classList.toggle('done');
+});
+
+/* ── table sort ─────────────────────────────────────── */
+document.querySelectorAll('th.sortable').forEach(th => {
+  th.addEventListener('click', () => {
+    const table = th.closest('table');
+    const idx = Array.from(th.parentElement.children).indexOf(th);
+    const asc = !th.classList.contains('sort-asc');
+    table.querySelectorAll('th').forEach(t => t.classList.remove('sort-asc','sort-desc'));
+    th.classList.add(asc ? 'sort-asc' : 'sort-desc');
+    const tbody = table.querySelector('tbody');
+    Array.from(tbody.querySelectorAll('tr'))
+      .sort((a, b) => {
+        const av = (a.cells[idx]?.textContent || '').trim();
+        const bv = (b.cells[idx]?.textContent || '').trim();
+        return asc ? av.localeCompare(bv, undefined, {numeric:true})
+                   : bv.localeCompare(av, undefined, {numeric:true});
+      })
+      .forEach(r => tbody.appendChild(r));
+  });
+});
+</script>
+</body>
+</html>
